@@ -7,3 +7,7 @@ edition = "2021"
 
 [dependencies]
 tensorflow = "0.21.0"
+
+[[example]]
+name = "simple_expression"
+crate-type = ["bin"]
