@@ -18,13 +18,21 @@ pub struct FloatData<const D: usize> {
 
 impl<const D: usize> From<&[usize]> for FloatData<D> {
     fn from(v: &[usize]) -> Self {
-        todo!()
+        debug_assert_eq!(v.len(), D);
+
+        let mut shape = [0_usize; D];
+
+        for i in 0 .. D {
+            shape[i] = v[i];
+        }
+
+        FloatData { shape }
     }
 }
 
 impl<const D: usize> From<[usize; D]> for FloatData<D> {
-    fn from(v: [usize; D]) -> Self {
-        todo!()
+    fn from(shape: [usize; D]) -> Self {
+        FloatData { shape } 
     }
 }
 
