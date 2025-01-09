@@ -1,6 +1,7 @@
-use super::{Id, WrappedExpr};
+use super::{CompiledElement, Id, WrappedExpr};
 use crate::data::*;
 use std::collections::HashMap;
+use tensorflow::Code;
 use tensorflow::Operation;
 use tensorflow::Output;
 use tensorflow::Scope;
@@ -9,16 +10,14 @@ use tensorflow::Variable;
 
 pub struct CompilerScope {
     scope: Scope,
-    operations: HashMap<Id, Operation>,
-    variables: HashMap<String, Variable>,
+    elements: HashMap<Id, CompiledElement>,
 }
 
 impl CompilerScope {
     pub fn new(scope: Scope) -> Self {
         Self {
             scope,
-            operations: HashMap::new(),
-            variables: HashMap::new(),
+            elements: HashMap::new(),
         }
     }
 
@@ -29,12 +28,13 @@ impl CompilerScope {
     pub fn get_output<D: Data>(&mut self, expr: &WrappedExpr<D>) -> Result<Output, Status> {
         let id = expr.0.id();
 
-        match self.operations.get(&id) {
-            Some(operation) => Ok(operation.output(0)),
+        match self.elements.get(&id) {
+            Some(CompiledElement::Operation(operation)) => Ok(operation.output(0)),
+            Some(CompiledElement::Variable(variable)) => Ok(variable.output().clone()),
             None => {
-                let operation = expr.0.make_operation(self)?;
-                let output = operation.output(0);
-                self.operations.insert(id, operation);
+                let element = expr.0.make_operation(self)?;
+                let output = element.output();
+                self.elements.insert(id, element);
                 Ok(output)
             }
         }
@@ -43,24 +43,48 @@ impl CompilerScope {
     pub fn get_operation<D: Data>(&mut self, expr: &WrappedExpr<D>) -> Result<Operation, Status> {
         let id = expr.0.id();
 
-        match self.operations.get(&id) {
-            Some(operation) => Ok(operation.clone()),
+        match self.elements.get(&id) {
+            Some(CompiledElement::Operation(operation)) => Ok(operation.clone()),
+            Some(_) => Err(Status::new_set_lossy(
+                Code::InvalidArgument,
+                "Expression is not an operation",
+            )),
             None => {
-                let operation = expr.0.make_operation(self)?;
-                self.operations.insert(id, operation.clone());
-                Ok(operation)
+                let element = expr.0.make_operation(self)?;
+                self.elements.insert(id, element.clone());
+
+                match element {
+                    CompiledElement::Operation(operation) => Ok(operation),
+                    _ => Err(Status::new_set_lossy(
+                        Code::InvalidArgument,
+                        "Expression is not an operation",
+                    )),
+                }
             }
         }
     }
 
-    pub fn get_variable_output(&self, name: &str) -> Option<Output> {
-        match self.variables.get(name) {
-            None => None,
-            Some(variable) => Some(variable.output().clone()),
-        }
-    }
+    pub fn get_variable<D: Data>(&mut self, expr: &WrappedExpr<D>) -> Result<Variable, Status> {
+        let id = expr.0.id();
 
-    pub fn add_variable(&mut self, name: &str, variable: Variable) {
-        self.variables.insert(name.to_string(), variable);
+        match self.elements.get(&id) {
+            Some(CompiledElement::Variable(variable)) => Ok(variable.clone()),
+            Some(_) => Err(Status::new_set_lossy(
+                Code::InvalidArgument,
+                "Expression is not a variable",
+            )),
+            None => {
+                let operation = expr.0.make_operation(self)?;
+                self.elements.insert(id, operation.clone());
+
+                match operation {
+                    CompiledElement::Variable(variable) => Ok(variable),
+                    _ => Err(Status::new_set_lossy(
+                        Code::InvalidArgument,
+                        "Expression is not an operation",
+                    )),
+                }
+            }
+        }
     }
 }

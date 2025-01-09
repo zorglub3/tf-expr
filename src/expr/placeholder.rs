@@ -1,7 +1,6 @@
-use super::{CompilerScope, Expr, Id};
+use super::{CompiledElement, CompilerScope, Expr, Id};
 use crate::data::*;
 use tensorflow::ops;
-use tensorflow::Operation;
 use tensorflow::Shape;
 use tensorflow::Status;
 
@@ -28,10 +27,15 @@ impl<D: Data> Expr<D> for PlaceholderExpr<D> {
         self.data_type().dimensions()
     }
 
-    fn make_operation(&self, compiler_scope: &mut CompilerScope) -> Result<Operation, Status> {
-        ops::Placeholder::new()
+    fn make_operation(
+        &self,
+        compiler_scope: &mut CompilerScope,
+    ) -> Result<CompiledElement, Status> {
+        let operation = ops::Placeholder::new()
             .dtype(self.data_type.data_type())
             .shape(self.data_type.shape())
-            .build(&mut compiler_scope.borrow_scope_mut().with_op_name(&self.name))
+            .build(&mut compiler_scope.borrow_scope_mut().with_op_name(&self.name))?;
+
+        Ok(CompiledElement::Operation(operation))
     }
 }

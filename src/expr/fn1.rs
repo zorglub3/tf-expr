@@ -1,7 +1,6 @@
-use super::{CompilerScope, Expr, Id, WrappedExpr};
+use super::{CompiledElement, CompilerScope, Expr, Id, WrappedExpr};
 use crate::data::*;
 use tensorflow::ops;
-use tensorflow::Operation;
 use tensorflow::Shape;
 use tensorflow::Status;
 
@@ -29,13 +28,18 @@ impl<D0: Data, D1: Data> Expr<D0> for Fn1Expr<D0, D1> {
         self.data_type.dimensions()
     }
 
-    fn make_operation(&self, compiler_scope: &mut CompilerScope) -> Result<Operation, Status> {
+    fn make_operation(
+        &self,
+        compiler_scope: &mut CompilerScope,
+    ) -> Result<CompiledElement, Status> {
         let arg_output = compiler_scope.get_output(&self.arg)?;
 
-        match self.function {
-            TFFunction::Tanh => ops::tanh(arg_output, compiler_scope.borrow_scope_mut()),
-            TFFunction::Exp => ops::exp(arg_output, compiler_scope.borrow_scope_mut()),
-        }
+        let operation = match self.function {
+            TFFunction::Tanh => ops::tanh(arg_output, compiler_scope.borrow_scope_mut())?,
+            TFFunction::Exp => ops::exp(arg_output, compiler_scope.borrow_scope_mut())?,
+        };
+
+        Ok(CompiledElement::Operation(operation))
     }
 }
 

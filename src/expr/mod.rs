@@ -4,8 +4,10 @@ use std::rc::Rc;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
 use tensorflow::Operation;
+use tensorflow::Output;
 use tensorflow::Shape;
 use tensorflow::Status;
+use tensorflow::Variable;
 
 mod binop;
 mod compiler_scope;
@@ -29,11 +31,27 @@ pub trait Expr<D: Data> {
     fn shape(&self) -> Shape;
     fn dimensions(&self) -> Vec<u64>;
     fn id(&self) -> Id;
-    fn make_operation(&self, compiler_scope: &mut CompilerScope) -> Result<Operation, Status>;
+    fn make_operation(&self, compiler_scope: &mut CompilerScope)
+        -> Result<CompiledElement, Status>;
 }
 
 #[derive(Clone)]
 pub struct WrappedExpr<D: Data>(Rc<dyn Expr<D>>);
+
+#[derive(Clone)]
+pub enum CompiledElement {
+    Operation(Operation),
+    Variable(Variable),
+}
+
+impl CompiledElement {
+    pub fn output(&self) -> Output {
+        match self {
+            CompiledElement::Operation(operation) => operation.output(0),
+            CompiledElement::Variable(variable) => variable.output().clone(),
+        }
+    }
+}
 
 impl<D: Data + 'static> Add<WrappedExpr<D>> for WrappedExpr<D> {
     type Output = WrappedExpr<D>;

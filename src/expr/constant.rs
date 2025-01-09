@@ -1,7 +1,6 @@
-use super::{CompilerScope, Expr, Id};
+use super::{CompiledElement, CompilerScope, Expr, Id};
 use crate::data::*;
 use tensorflow::ops;
-use tensorflow::Operation;
 use tensorflow::Shape;
 use tensorflow::Status;
 use tensorflow::Tensor;
@@ -29,8 +28,13 @@ impl<D: Data> Expr<D> for ConstantExpr<D> {
         self.id
     }
 
-    fn make_operation(&self, compiler_scope: &mut CompilerScope) -> Result<Operation, Status> {
+    fn make_operation(
+        &self,
+        compiler_scope: &mut CompilerScope,
+    ) -> Result<CompiledElement, Status> {
         let tensor = Tensor::new(&self.data_type().dimensions()[..]).with_values(&self.values)?;
-        ops::constant(tensor, compiler_scope.borrow_scope_mut())
+        let operation = ops::constant(tensor, compiler_scope.borrow_scope_mut())?;
+
+        Ok(CompiledElement::Operation(operation))
     }
 }
