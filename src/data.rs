@@ -1,6 +1,6 @@
 use tensorflow::DataType;
-use tensorflow::TensorType;
 use tensorflow::Shape;
+use tensorflow::TensorType;
 
 pub trait Data: Clone {
     type Element: TensorType;
@@ -22,7 +22,7 @@ impl<const D: usize> From<&[usize]> for FloatData<D> {
 
         let mut shape = [0_usize; D];
 
-        for i in 0 .. D {
+        for i in 0..D {
             shape[i] = v[i];
         }
 
@@ -32,7 +32,7 @@ impl<const D: usize> From<&[usize]> for FloatData<D> {
 
 impl<const D: usize> From<[usize; D]> for FloatData<D> {
     fn from(shape: [usize; D]) -> Self {
-        FloatData { shape } 
+        FloatData { shape }
     }
 }
 
@@ -50,7 +50,7 @@ impl<const D: usize> Data for FloatData<D> {
     fn shape(&self) -> Shape {
         let mut shape_u64: Vec<u64> = Vec::new();
 
-        for i in 0 .. self.shape.len() {
+        for i in 0..self.shape.len() {
             shape_u64.push(self.shape[i] as u64);
         }
 
@@ -60,7 +60,7 @@ impl<const D: usize> Data for FloatData<D> {
     fn dimensions(&self) -> Vec<u64> {
         let mut shape_u64: Vec<u64> = Vec::new();
 
-        for i in 0 .. self.shape.len() {
+        for i in 0..self.shape.len() {
             shape_u64.push(self.shape[i] as u64);
         }
 
@@ -87,7 +87,7 @@ impl<const D: usize> Data for DoubleData<D> {
     fn shape(&self) -> Shape {
         let mut shape_u64: Vec<u64> = Vec::new();
 
-        for i in 0 .. self.shape.len() {
+        for i in 0..self.shape.len() {
             shape_u64.push(self.shape[i] as u64);
         }
 
@@ -97,7 +97,7 @@ impl<const D: usize> Data for DoubleData<D> {
     fn dimensions(&self) -> Vec<u64> {
         let mut shape_u64: Vec<u64> = Vec::new();
 
-        for i in 0 .. self.shape.len() {
+        for i in 0..self.shape.len() {
             shape_u64.push(self.shape[i] as u64);
         }
 
