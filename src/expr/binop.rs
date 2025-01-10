@@ -1,18 +1,18 @@
-use super::{CompiledElement, CompilerScope, Expr, Id, WrappedExpr};
+use super::{CompiledElement, CompilerScope, Expr, ExprImpl, Id};
 use crate::data::*;
 use tensorflow::ops;
 use tensorflow::Shape;
 use tensorflow::Status;
 
-pub struct BinOpExpr<D: Data> {
+pub(crate) struct BinOpExpr<D: Data> {
     pub(crate) id: Id,
     pub(crate) op: BinaryOperator,
-    pub(crate) left: WrappedExpr<D>,
-    pub(crate) right: WrappedExpr<D>,
+    pub(crate) left: Expr<D>,
+    pub(crate) right: Expr<D>,
     pub(crate) data_type: D,
 }
 
-impl<D: Data> Expr<D> for BinOpExpr<D> {
+impl<D: Data> ExprImpl<D> for BinOpExpr<D> {
     fn id(&self) -> Id {
         self.id
     }

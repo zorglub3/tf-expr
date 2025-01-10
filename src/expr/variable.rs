@@ -1,17 +1,17 @@
-use super::{CompiledElement, CompilerScope, Expr, Id, WrappedExpr};
+use super::{CompiledElement, CompilerScope, Expr, ExprImpl, Id};
 use crate::data::*;
 use tensorflow::Shape;
 use tensorflow::Status;
 use tensorflow::Variable;
 
-pub struct ReadVariable<D: Data> {
+pub(crate) struct ReadVariable<D: Data> {
     pub(crate) id: Id,
     pub(crate) name: String,
-    pub(crate) initial_value: WrappedExpr<D>,
+    pub(crate) initial_value: Expr<D>,
     pub(crate) data_type: D,
 }
 
-impl<D: Data> Expr<D> for ReadVariable<D> {
+impl<D: Data> ExprImpl<D> for ReadVariable<D> {
     fn id(&self) -> Id {
         self.id
     }

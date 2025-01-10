@@ -1,4 +1,4 @@
-use super::{CompiledElement, Id, WrappedExpr};
+use super::{CompiledElement, Expr, Id};
 use crate::data::*;
 use std::collections::HashMap;
 use tensorflow::Code;
@@ -9,8 +9,8 @@ use tensorflow::Status;
 use tensorflow::Variable;
 
 pub struct CompilerScope {
-    scope: Scope,
-    elements: HashMap<Id, CompiledElement>,
+    pub(crate) scope: Scope,
+    pub(crate) elements: HashMap<Id, CompiledElement>,
 }
 
 impl CompilerScope {
@@ -21,11 +21,18 @@ impl CompilerScope {
         }
     }
 
+    pub fn new_with_root_scope() -> Self {
+        Self {
+            scope: Scope::new_root_scope(),
+            elements: HashMap::new(),
+        }
+    }
+
     pub fn borrow_scope_mut(&mut self) -> &mut Scope {
         &mut self.scope
     }
 
-    pub fn get_output<D: Data>(&mut self, expr: &WrappedExpr<D>) -> Result<Output, Status> {
+    pub fn get_output<D: Data>(&mut self, expr: &Expr<D>) -> Result<Output, Status> {
         let id = expr.0.id();
 
         match self.elements.get(&id) {
@@ -40,7 +47,7 @@ impl CompilerScope {
         }
     }
 
-    pub fn get_operation<D: Data>(&mut self, expr: &WrappedExpr<D>) -> Result<Operation, Status> {
+    pub fn get_operation<D: Data>(&mut self, expr: &Expr<D>) -> Result<Operation, Status> {
         let id = expr.0.id();
 
         match self.elements.get(&id) {
@@ -64,7 +71,7 @@ impl CompilerScope {
         }
     }
 
-    pub fn get_variable<D: Data>(&mut self, expr: &WrappedExpr<D>) -> Result<Variable, Status> {
+    pub fn get_variable<D: Data>(&mut self, expr: &Expr<D>) -> Result<Variable, Status> {
         let id = expr.0.id();
 
         match self.elements.get(&id) {

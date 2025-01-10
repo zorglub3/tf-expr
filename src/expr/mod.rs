@@ -26,7 +26,7 @@ pub(crate) fn get_id() -> Id {
     COUNTER.fetch_add(1, Ordering::Relaxed)
 }
 
-pub trait Expr<D: Data> {
+pub(crate) trait ExprImpl<D: Data> {
     fn data_type(&self) -> D;
     fn shape(&self) -> Shape;
     fn dimensions(&self) -> Vec<u64>;
@@ -36,7 +36,7 @@ pub trait Expr<D: Data> {
 }
 
 #[derive(Clone)]
-pub struct WrappedExpr<D: Data>(Rc<dyn Expr<D>>);
+pub struct Expr<D: Data>(pub(crate) Rc<dyn ExprImpl<D>>);
 
 #[derive(Clone)]
 pub enum CompiledElement {
@@ -53,13 +53,13 @@ impl CompiledElement {
     }
 }
 
-impl<D: Data + 'static> Add<WrappedExpr<D>> for WrappedExpr<D> {
-    type Output = WrappedExpr<D>;
+impl<D: Data + 'static> Add<Expr<D>> for Expr<D> {
+    type Output = Expr<D>;
 
-    fn add(self, rhs: WrappedExpr<D>) -> WrappedExpr<D> {
+    fn add(self, rhs: Expr<D>) -> Expr<D> {
         let data_type = self.0.data_type();
 
-        WrappedExpr(Rc::new(binop::BinOpExpr {
+        Expr(Rc::new(binop::BinOpExpr {
             id: get_id(),
             op: binop::BinaryOperator::Add,
             left: self.clone(),
@@ -69,13 +69,13 @@ impl<D: Data + 'static> Add<WrappedExpr<D>> for WrappedExpr<D> {
     }
 }
 
-impl<D: Data + 'static> Sub<WrappedExpr<D>> for WrappedExpr<D> {
-    type Output = WrappedExpr<D>;
+impl<D: Data + 'static> Sub<Expr<D>> for Expr<D> {
+    type Output = Expr<D>;
 
-    fn sub(self, rhs: WrappedExpr<D>) -> WrappedExpr<D> {
+    fn sub(self, rhs: Expr<D>) -> Expr<D> {
         let data_type = self.0.data_type();
 
-        WrappedExpr(Rc::new(binop::BinOpExpr {
+        Expr(Rc::new(binop::BinOpExpr {
             id: get_id(),
             op: binop::BinaryOperator::Sub,
             left: self.clone(),
@@ -85,13 +85,13 @@ impl<D: Data + 'static> Sub<WrappedExpr<D>> for WrappedExpr<D> {
     }
 }
 
-impl<D: Data + 'static> Mul<WrappedExpr<D>> for WrappedExpr<D> {
-    type Output = WrappedExpr<D>;
+impl<D: Data + 'static> Mul<Expr<D>> for Expr<D> {
+    type Output = Expr<D>;
 
-    fn mul(self, rhs: WrappedExpr<D>) -> WrappedExpr<D> {
+    fn mul(self, rhs: Expr<D>) -> Expr<D> {
         let data_type = self.0.data_type();
 
-        WrappedExpr(Rc::new(binop::BinOpExpr {
+        Expr(Rc::new(binop::BinOpExpr {
             id: get_id(),
             op: binop::BinaryOperator::Mul,
             left: self.clone(),
@@ -101,13 +101,13 @@ impl<D: Data + 'static> Mul<WrappedExpr<D>> for WrappedExpr<D> {
     }
 }
 
-impl<D: Data + 'static> Div<WrappedExpr<D>> for WrappedExpr<D> {
-    type Output = WrappedExpr<D>;
+impl<D: Data + 'static> Div<Expr<D>> for Expr<D> {
+    type Output = Expr<D>;
 
-    fn div(self, rhs: WrappedExpr<D>) -> WrappedExpr<D> {
+    fn div(self, rhs: Expr<D>) -> Expr<D> {
         let data_type = self.0.data_type();
 
-        WrappedExpr(Rc::new(binop::BinOpExpr {
+        Expr(Rc::new(binop::BinOpExpr {
             id: get_id(),
             op: binop::BinaryOperator::Div,
             left: self.clone(),
@@ -117,11 +117,11 @@ impl<D: Data + 'static> Div<WrappedExpr<D>> for WrappedExpr<D> {
     }
 }
 
-impl<const D: usize> WrappedExpr<FloatData<D>> {
-    pub fn tanh(self) -> WrappedExpr<FloatData<D>> {
+impl<const D: usize> Expr<FloatData<D>> {
+    pub fn tanh(self) -> Expr<FloatData<D>> {
         let data_type = self.0.data_type();
 
-        WrappedExpr(Rc::new(fn1::Fn1Expr {
+        Expr(Rc::new(fn1::Fn1Expr {
             id: get_id(),
             function: fn1::TFFunction::Tanh,
             arg: self.clone(),
@@ -129,10 +129,10 @@ impl<const D: usize> WrappedExpr<FloatData<D>> {
         }))
     }
 
-    pub fn exp(self) -> WrappedExpr<FloatData<D>> {
+    pub fn exp(self) -> Expr<FloatData<D>> {
         let data_type = self.0.data_type();
 
-        WrappedExpr(Rc::new(fn1::Fn1Expr {
+        Expr(Rc::new(fn1::Fn1Expr {
             id: get_id(),
             function: fn1::TFFunction::Exp,
             arg: self.clone(),
@@ -141,21 +141,21 @@ impl<const D: usize> WrappedExpr<FloatData<D>> {
     }
 }
 
-pub fn scalar_float(v: f32) -> WrappedExpr<FloatData<0>> {
-    WrappedExpr(Rc::new(constant::ConstantExpr {
+pub fn scalar_float(v: f32) -> Expr<FloatData<0>> {
+    Expr(Rc::new(constant::ConstantExpr {
         id: get_id(),
         values: vec![v],
         data_type: FloatData::from([]),
     }))
 }
 
-pub fn vector_float(v: &[f32]) -> WrappedExpr<FloatData<1>> {
+pub fn vector_float(v: &[f32]) -> Expr<FloatData<1>> {
     let mut values = Vec::new();
 
     values.extend_from_slice(v);
     let len = values.len();
 
-    WrappedExpr(Rc::new(constant::ConstantExpr {
+    Expr(Rc::new(constant::ConstantExpr {
         id: get_id(),
         values,
         data_type: FloatData::from([len]),
@@ -164,10 +164,10 @@ pub fn vector_float(v: &[f32]) -> WrappedExpr<FloatData<1>> {
 
 pub fn float_variable<const D: usize, S: Into<FloatData<D>>>(
     name: &str,
-    initial_value: WrappedExpr<FloatData<D>>,
+    initial_value: Expr<FloatData<D>>,
     shape: S,
-) -> WrappedExpr<FloatData<D>> {
-    WrappedExpr(Rc::new(variable::ReadVariable {
+) -> Expr<FloatData<D>> {
+    Expr(Rc::new(variable::ReadVariable {
         id: get_id(),
         name: name.to_string(),
         initial_value,

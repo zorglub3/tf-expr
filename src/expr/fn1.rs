@@ -1,17 +1,17 @@
-use super::{CompiledElement, CompilerScope, Expr, Id, WrappedExpr};
+use super::{CompiledElement, CompilerScope, Expr, ExprImpl, Id};
 use crate::data::*;
 use tensorflow::ops;
 use tensorflow::Shape;
 use tensorflow::Status;
 
-pub struct Fn1Expr<D0: Data, D1: Data> {
+pub(crate) struct Fn1Expr<D0: Data, D1: Data> {
     pub(crate) id: Id,
     pub(crate) function: TFFunction,
-    pub(crate) arg: WrappedExpr<D1>,
+    pub(crate) arg: Expr<D1>,
     pub(crate) data_type: D0,
 }
 
-impl<D0: Data, D1: Data> Expr<D0> for Fn1Expr<D0, D1> {
+impl<D0: Data, D1: Data> ExprImpl<D0> for Fn1Expr<D0, D1> {
     fn id(&self) -> Id {
         self.id
     }

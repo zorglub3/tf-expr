@@ -1,16 +1,16 @@
-use super::{CompiledElement, CompilerScope, Expr, Id};
+use super::{CompiledElement, CompilerScope, ExprImpl, Id};
 use crate::data::*;
 use tensorflow::ops;
 use tensorflow::Shape;
 use tensorflow::Status;
 
-pub struct PlaceholderExpr<D: Data> {
+pub(crate) struct PlaceholderExpr<D: Data> {
     pub(crate) id: Id,
     pub(crate) name: String,
     pub(crate) data_type: D,
 }
 
-impl<D: Data> Expr<D> for PlaceholderExpr<D> {
+impl<D: Data> ExprImpl<D> for PlaceholderExpr<D> {
     fn id(&self) -> Id {
         self.id
     }

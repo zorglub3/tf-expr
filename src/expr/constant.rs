@@ -1,17 +1,17 @@
-use super::{CompiledElement, CompilerScope, Expr, Id};
+use super::{CompiledElement, CompilerScope, ExprImpl, Id};
 use crate::data::*;
 use tensorflow::ops;
 use tensorflow::Shape;
 use tensorflow::Status;
 use tensorflow::Tensor;
 
-pub struct ConstantExpr<D: Data> {
+pub(crate) struct ConstantExpr<D: Data> {
     pub(crate) id: Id,
     pub(crate) values: Vec<D::Element>,
     pub(crate) data_type: D,
 }
 
-impl<D: Data> Expr<D> for ConstantExpr<D> {
+impl<D: Data> ExprImpl<D> for ConstantExpr<D> {
     fn data_type(&self) -> D {
         self.data_type.clone()
     }
