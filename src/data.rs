@@ -1,3 +1,4 @@
+use std::marker::PhantomData;
 use tensorflow::DataType;
 use tensorflow::Shape;
 use tensorflow::TensorType;
@@ -9,6 +10,39 @@ pub trait Data: Clone {
     fn data_type(&self) -> DataType;
     fn shape(&self) -> Shape;
     fn dimensions(&self) -> Vec<u64>;
+}
+
+#[derive(PartialEq, Clone)]
+pub struct NoData {
+    phantom: PhantomData<usize>,
+}
+
+impl NoData {
+    pub fn new() -> Self {
+        Self {
+            phantom: PhantomData,
+        }
+    }
+}
+
+impl Data for NoData {
+    type Element = i32;
+
+    fn rank(&self) -> usize {
+        0
+    }
+
+    fn data_type(&self) -> DataType {
+        DataType::Int32
+    }
+
+    fn shape(&self) -> Shape {
+        [0; 0].into()
+    }
+
+    fn dimensions(&self) -> Vec<u64> {
+        Vec::new()
+    }
 }
 
 #[derive(PartialEq, Clone)]

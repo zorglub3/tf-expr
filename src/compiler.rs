@@ -1,5 +1,6 @@
-use super::{CompiledElement, Expr, Id};
 use crate::data::*;
+use crate::expr::VariableRef;
+use crate::expr::{Expr, Id};
 use std::collections::HashMap;
 use tensorflow::Code;
 use tensorflow::Operation;
@@ -8,12 +9,12 @@ use tensorflow::Scope;
 use tensorflow::Status;
 use tensorflow::Variable;
 
-pub struct CompilerScope {
+pub struct Compiler {
     pub(crate) scope: Scope,
     pub(crate) elements: HashMap<Id, CompiledElement>,
 }
 
-impl CompilerScope {
+impl Compiler {
     pub fn new(scope: Scope) -> Self {
         Self {
             scope,
@@ -94,4 +95,22 @@ impl CompilerScope {
             }
         }
     }
+
+    pub fn variable_by_ref(&mut self, variable_ref: &VariableRef) -> Result<Variable, Status> {
+        let id = variable_ref.id;
+
+        match self.elements.get(&id) {
+            Some(CompiledElement::Variable(variable)) => Ok(variable.clone()),
+            _ => Err(Status::new_set_lossy(
+                Code::InvalidArgument,
+                "Expression is not an operation",
+            )),
+        }
+    }
+}
+
+#[derive(Clone)]
+pub(crate) enum CompiledElement {
+    Operation(Operation),
+    Variable(Variable),
 }

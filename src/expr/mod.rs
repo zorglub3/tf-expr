@@ -1,22 +1,26 @@
+use crate::compiler::CompiledElement;
+use crate::compiler::Compiler;
 use crate::data::*;
 use std::ops::{Add, Div, Mul, Sub};
 use std::rc::Rc;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
-use tensorflow::Operation;
 use tensorflow::Output;
 use tensorflow::Shape;
 use tensorflow::Status;
-use tensorflow::Variable;
 
 mod binop;
-mod compiler_scope;
 mod constant;
+mod fn0;
 mod fn1;
+mod optimize;
 mod placeholder;
 mod variable;
 
-pub use compiler_scope::CompilerScope;
+pub use placeholder::Placeholder;
+pub use placeholder::PlaceholderRef;
+pub use variable::Variable;
+pub use variable::VariableRef;
 
 static COUNTER: AtomicUsize = AtomicUsize::new(1);
 
@@ -31,18 +35,11 @@ pub(crate) trait ExprImpl<D: Data> {
     fn shape(&self) -> Shape;
     fn dimensions(&self) -> Vec<u64>;
     fn id(&self) -> Id;
-    fn make_operation(&self, compiler_scope: &mut CompilerScope)
-        -> Result<CompiledElement, Status>;
+    fn make_operation(&self, compiler: &mut Compiler) -> Result<CompiledElement, Status>;
 }
 
 #[derive(Clone)]
 pub struct Expr<D: Data>(pub(crate) Rc<dyn ExprImpl<D>>);
-
-#[derive(Clone)]
-pub enum CompiledElement {
-    Operation(Operation),
-    Variable(Variable),
-}
 
 impl CompiledElement {
     pub fn output(&self) -> Output {
@@ -123,7 +120,7 @@ impl<const D: usize> Expr<FloatData<D>> {
 
         Expr(Rc::new(fn1::Fn1Expr {
             id: get_id(),
-            function: fn1::TFFunction::Tanh,
+            function: fn1::TFFunction1::Tanh,
             arg: self.clone(),
             data_type,
         }))
@@ -134,7 +131,7 @@ impl<const D: usize> Expr<FloatData<D>> {
 
         Expr(Rc::new(fn1::Fn1Expr {
             id: get_id(),
-            function: fn1::TFFunction::Exp,
+            function: fn1::TFFunction1::Exp,
             arg: self.clone(),
             data_type,
         }))
@@ -166,11 +163,40 @@ pub fn float_variable<const D: usize, S: Into<FloatData<D>>>(
     name: &str,
     initial_value: Expr<FloatData<D>>,
     shape: S,
-) -> Expr<FloatData<D>> {
-    Expr(Rc::new(variable::ReadVariable {
+) -> Variable<FloatData<D>> {
+    Variable {
         id: get_id(),
         name: name.to_string(),
         initial_value,
+        data_type: shape.into(),
+    }
+}
+
+pub fn float_feed<const D: usize, S: Into<FloatData<D>>>(
+    name: &str,
+    shape: S,
+) -> Placeholder<FloatData<D>> {
+    Placeholder {
+        id: get_id(),
+        name: name.to_string(),
+        data_type: shape.into(),
+    }
+}
+
+pub fn random_uniform<const D: usize, S: Into<FloatData<D>>>(shape: S) -> Expr<FloatData<D>> {
+    Expr(Rc::new(fn0::Fn0Expr {
+        id: get_id(),
+        function: fn0::TFFunction0::RandomUniform,
+        data_type: shape.into(),
+    }))
+}
+
+pub fn random_standard_normal<const D: usize, S: Into<FloatData<D>>>(
+    shape: S,
+) -> Expr<FloatData<D>> {
+    Expr(Rc::new(fn0::Fn0Expr {
+        id: get_id(),
+        function: fn0::TFFunction0::RandomStandardNormal,
         data_type: shape.into(),
     }))
 }

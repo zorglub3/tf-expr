@@ -1,4 +1,5 @@
-use super::{CompiledElement, CompilerScope, Expr, ExprImpl, Id};
+use super::{Expr, ExprImpl, Id};
+use crate::compiler::{CompiledElement, Compiler};
 use crate::data::*;
 use tensorflow::ops;
 use tensorflow::Shape;
@@ -29,25 +30,22 @@ impl<D: Data> ExprImpl<D> for BinOpExpr<D> {
         self.data_type().dimensions()
     }
 
-    fn make_operation(
-        &self,
-        compiler_scope: &mut CompilerScope,
-    ) -> Result<CompiledElement, Status> {
-        let left_output = compiler_scope.get_output(&self.left)?;
-        let right_output = compiler_scope.get_output(&self.right)?;
+    fn make_operation(&self, compiler: &mut Compiler) -> Result<CompiledElement, Status> {
+        let left_output = compiler.get_output(&self.left)?;
+        let right_output = compiler.get_output(&self.right)?;
 
         let operation = match self.op {
             BinaryOperator::Add => {
-                ops::add(left_output, right_output, compiler_scope.borrow_scope_mut())?
+                ops::add(left_output, right_output, compiler.borrow_scope_mut())?
             }
             BinaryOperator::Sub => {
-                ops::sub(left_output, right_output, compiler_scope.borrow_scope_mut())?
+                ops::sub(left_output, right_output, compiler.borrow_scope_mut())?
             }
             BinaryOperator::Mul => {
-                ops::mul(left_output, right_output, compiler_scope.borrow_scope_mut())?
+                ops::mul(left_output, right_output, compiler.borrow_scope_mut())?
             }
             BinaryOperator::Div => {
-                ops::div(left_output, right_output, compiler_scope.borrow_scope_mut())?
+                ops::div(left_output, right_output, compiler.borrow_scope_mut())?
             }
         };
 
