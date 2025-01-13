@@ -33,15 +33,32 @@ impl Compiler {
         &mut self.scope
     }
 
+    pub fn compile<D: Data>(&mut self, expr: &Expr<D>) -> Result<(), Status> {
+        let id = expr.0.id();
+
+        match self.elements.get(&id) {
+            Some(_) => Ok(()),
+            None => {
+                let element = expr.0.make_operation(self)?;
+                self.elements.insert(id, element);
+                Ok(())
+            }
+        }
+    }
+
     pub fn get_output<D: Data>(&mut self, expr: &Expr<D>) -> Result<Output, Status> {
         let id = expr.0.id();
 
         match self.elements.get(&id) {
             Some(CompiledElement::Operation(operation)) => Ok(operation.output(0)),
             Some(CompiledElement::Variable(variable)) => Ok(variable.output().clone()),
+            Some(CompiledElement::Optimizer(_, _)) => Err(Status::new_set_lossy(
+                Code::InvalidArgument,
+                "You can't use the output from an optimizer",
+            )),
             None => {
                 let element = expr.0.make_operation(self)?;
-                let output = element.output();
+                let output = element.output()?;
                 self.elements.insert(id, element);
                 Ok(output)
             }
@@ -113,4 +130,18 @@ impl Compiler {
 pub(crate) enum CompiledElement {
     Operation(Operation),
     Variable(Variable),
+    Optimizer(Operation, Vec<Variable>),
+}
+
+impl CompiledElement {
+    pub fn output(&self) -> Result<Output, Status> {
+        match self {
+            CompiledElement::Operation(operation) => Ok(operation.output(0)),
+            CompiledElement::Variable(variable) => Ok(variable.output().clone()),
+            CompiledElement::Optimizer(_, _) => Err(Status::new_set_lossy(
+                Code::InvalidArgument,
+                "Cannot use the output of an optimizer",
+            )),
+        }
+    }
 }

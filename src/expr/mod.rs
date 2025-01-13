@@ -1,11 +1,11 @@
 use crate::compiler::CompiledElement;
 use crate::compiler::Compiler;
 use crate::data::*;
+use crate::tensordata::TensorData;
 use std::ops::{Add, Div, Mul, Sub};
 use std::rc::Rc;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
-use tensorflow::Output;
 use tensorflow::Shape;
 use tensorflow::Status;
 
@@ -40,15 +40,6 @@ pub(crate) trait ExprImpl<D: Data> {
 
 #[derive(Clone)]
 pub struct Expr<D: Data>(pub(crate) Rc<dyn ExprImpl<D>>);
-
-impl CompiledElement {
-    pub fn output(&self) -> Output {
-        match self {
-            CompiledElement::Operation(operation) => operation.output(0),
-            CompiledElement::Variable(variable) => variable.output().clone(),
-        }
-    }
-}
 
 impl<D: Data + 'static> Add<Expr<D>> for Expr<D> {
     type Output = Expr<D>;
@@ -136,8 +127,53 @@ impl<const D: usize> Expr<FloatData<D>> {
             data_type,
         }))
     }
+
+    pub fn minimize(self, variables: Vec<VariableRef>) -> Expr<NoData> {
+        Expr(Rc::new(optimize::AdaDeltaMinimizeExpr::<
+            FloatData<D>,
+            FloatData<0>,
+        > {
+            id: get_id(),
+            loss: self.clone(),
+            variables,
+            learning_rate: None,
+            rho: None,
+            epsilon: None,
+        }))
+    }
 }
 
+/*
+impl<D: Data + 'static> From<TensorData<D>> for Expr<D> {
+    fn from(tensor_data: TensorData<D>) -> Self {
+        Expr(Rc::new(constant::ConstantExpr {
+            id: get_id(),
+            value: tensor_data,
+        }))
+    }
+}
+*/
+
+impl<D: Data + 'static, T: Into<TensorData<D>>> From<T> for Expr<D> {
+    fn from(t: T) -> Self {
+        Expr(Rc::new(constant::ConstantExpr {
+            id: get_id(),
+            value: t.into(),
+        }))
+    }
+}
+
+/*
+impl<D: Data, TD: TryInto<TensorData<D>>> TryFrom<TD> for Expr<D> {
+    type Error = Status;
+
+    fn try_from(tensor_data: TD) -> Result<Self, Status> {
+        todo!()
+    }
+}
+*/
+
+/*
 pub fn scalar_float(v: f32) -> Expr<FloatData<0>> {
     Expr(Rc::new(constant::ConstantExpr {
         id: get_id(),
@@ -158,6 +194,7 @@ pub fn vector_float(v: &[f32]) -> Expr<FloatData<1>> {
         data_type: FloatData::from([len]),
     }))
 }
+*/
 
 pub fn float_variable<const D: usize, S: Into<FloatData<D>>>(
     name: &str,

@@ -4,7 +4,7 @@ use tf_expr::expr::*;
 use tf_expr::*;
 
 pub fn main() {
-    let v1 = vector_float(&[1.0_f32, 2., 3.][..]);
+    let v1: Expr<FloatData<1>> = (&[1.0_f32, 2., 3.]).into();
     let v2 = float_feed("the_feed", [3]);
 
     let e: Expr<FloatData<1>> = v1 + v2.read();

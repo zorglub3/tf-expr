@@ -1,28 +1,27 @@
 use super::{ExprImpl, Id};
 use crate::compiler::{CompiledElement, Compiler};
 use crate::data::*;
+use crate::tensordata::TensorData;
 use tensorflow::ops;
 use tensorflow::Shape;
 use tensorflow::Status;
-use tensorflow::Tensor;
 
 pub(crate) struct ConstantExpr<D: Data> {
     pub(crate) id: Id,
-    pub(crate) values: Vec<D::Element>,
-    pub(crate) data_type: D,
+    pub(crate) value: TensorData<D>,
 }
 
-impl<D: Data> ExprImpl<D> for ConstantExpr<D> {
+impl<D: Data + 'static> ExprImpl<D> for ConstantExpr<D> {
     fn data_type(&self) -> D {
-        self.data_type.clone()
+        self.value.data_type.clone()
     }
 
     fn shape(&self) -> Shape {
-        self.data_type.shape()
+        self.value.data_type.shape()
     }
 
     fn dimensions(&self) -> Vec<u64> {
-        self.data_type.dimensions()
+        self.value.data_type.dimensions()
     }
 
     fn id(&self) -> Id {
@@ -30,8 +29,8 @@ impl<D: Data> ExprImpl<D> for ConstantExpr<D> {
     }
 
     fn make_operation(&self, compiler: &mut Compiler) -> Result<CompiledElement, Status> {
-        let tensor = Tensor::new(&self.data_type().dimensions()[..]).with_values(&self.values)?;
-        let operation = ops::constant(tensor, compiler.borrow_scope_mut())?;
+        let operation = ops::constant(self.value.make_tensor()?, compiler.borrow_scope_mut())?;
+        // let operation = ops::constant(self.value.data.clone(), compiler.borrow_scope_mut())?;
 
         Ok(CompiledElement::Operation(operation))
     }

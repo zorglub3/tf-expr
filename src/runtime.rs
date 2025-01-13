@@ -55,6 +55,10 @@ impl RuntimeSession {
                 Code::InvalidArgument,
                 "Expression is not an operation",
             )),
+            Some(CompiledElement::Optimizer(_, _)) => Err(Status::new_set_lossy(
+                Code::InvalidArgument,
+                "Cannot fetch output from an optimizer",
+            )),
             None => Err(Status::new_set_lossy(
                 Code::Unknown,
                 "Expression isn't compiled",
@@ -94,6 +98,12 @@ impl RuntimeSession {
         match self.elements.get(&id) {
             Some(CompiledElement::Operation(operation)) => args.add_feed(&operation, 0, data),
             Some(CompiledElement::Variable(_)) => {
+                return Err(Status::new_set_lossy(
+                    Code::InvalidArgument,
+                    "Not a placeholder",
+                ))
+            }
+            Some(CompiledElement::Optimizer(_, _)) => {
                 return Err(Status::new_set_lossy(
                     Code::InvalidArgument,
                     "Not a placeholder",

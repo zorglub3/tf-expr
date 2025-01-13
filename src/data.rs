@@ -12,6 +12,10 @@ pub trait Data: Clone {
     fn dimensions(&self) -> Vec<u64>;
 }
 
+pub trait ScalarData: Data + Clone {}
+
+impl ScalarData for FloatData<0> {}
+
 #[derive(PartialEq, Clone)]
 pub struct NoData {
     phantom: PhantomData<usize>,
@@ -50,6 +54,9 @@ pub struct FloatData<const D: usize> {
     shape: [usize; D],
 }
 
+/*
+// TODO: hide behind feature flag `dodgy` :-)
+
 impl<const D: usize> From<&[usize]> for FloatData<D> {
     fn from(v: &[usize]) -> Self {
         debug_assert_eq!(v.len(), D);
@@ -63,10 +70,17 @@ impl<const D: usize> From<&[usize]> for FloatData<D> {
         FloatData { shape }
     }
 }
+*/
 
 impl<const D: usize> From<[usize; D]> for FloatData<D> {
     fn from(shape: [usize; D]) -> Self {
         FloatData { shape }
+    }
+}
+
+impl<const D: usize> From<&[usize; D]> for FloatData<D> {
+    fn from(shape: &[usize; D]) -> Self {
+        FloatData { shape: shape.clone() }
     }
 }
 
