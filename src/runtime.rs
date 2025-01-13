@@ -4,6 +4,7 @@ use crate::data::Data;
 use crate::expr::Expr;
 use crate::expr::Id;
 use crate::expr::PlaceholderRef;
+use crate::tensordata::TaggedTensor;
 use std::collections::HashMap;
 use std::ops::Deref;
 use tensorflow::Code;
@@ -12,7 +13,6 @@ use tensorflow::Session;
 use tensorflow::SessionOptions;
 use tensorflow::SessionRunArgs;
 use tensorflow::Status;
-use tensorflow::Tensor;
 
 pub struct RuntimeSession {
     elements: HashMap<Id, CompiledElement>,
@@ -42,10 +42,10 @@ impl RuntimeSession {
         counter
     }
 
-    pub fn request_fetch<D: Data>(
+    pub fn request_fetch<const RANK: usize, D: Data<RANK>>(
         &self,
         args: &mut SessionRunArgs,
-        expr: &Expr<D>,
+        expr: &Expr<RANK, D>,
     ) -> Result<FetchToken, Status> {
         let id = expr.0.id();
 
@@ -85,38 +85,37 @@ impl RuntimeSession {
         }
     }
 
-    pub fn add_feed<'l, D: Data>(
+    pub fn add_feed<'l, const RANK: usize, D: Data<RANK> + 'static>(
         &self,
         args: &mut SessionRunArgs<'l>,
-        placeholder_ref: &PlaceholderRef<D>,
-        data: &'l Tensor<D::Element>,
+        placeholder_ref: &PlaceholderRef<RANK, D>,
+        tagged_tensor: &'l TaggedTensor<RANK, D>,
     ) -> Result<(), Status> {
         let id = placeholder_ref.id;
 
-        // TODO match tensor to placeholder_ref data type and/or wrap tensor to make rank part of type.
-
         match self.elements.get(&id) {
-            Some(CompiledElement::Operation(operation)) => args.add_feed(&operation, 0, data),
+            Some(CompiledElement::Operation(operation)) => {
+                args.add_feed(&operation, 0, &tagged_tensor.tensor);
+                Ok(())
+            }
             Some(CompiledElement::Variable(_)) => {
-                return Err(Status::new_set_lossy(
+                Err(Status::new_set_lossy(
                     Code::InvalidArgument,
                     "Not a placeholder",
                 ))
             }
             Some(CompiledElement::Optimizer(_, _)) => {
-                return Err(Status::new_set_lossy(
+                Err(Status::new_set_lossy(
                     Code::InvalidArgument,
                     "Not a placeholder",
                 ))
             }
             None => {
-                return Err(Status::new_set_lossy(
+                Err(Status::new_set_lossy(
                     Code::Unknown,
                     "Placeholder is not compiled",
                 ))
             }
         }
-
-        Ok(())
     }
 }

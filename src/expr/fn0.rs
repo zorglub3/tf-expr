@@ -1,17 +1,17 @@
 use super::{ExprImpl, Id};
 use crate::compiler::{CompiledElement, Compiler};
-use crate::data::*;
+use crate::data::Data;
 use tensorflow::ops;
 use tensorflow::Shape;
 use tensorflow::Status;
 
-pub(crate) struct Fn0Expr<D: Data> {
+pub(crate) struct Fn0Expr<const RANK: usize, D: Data<RANK>> {
     pub(crate) id: Id,
     pub(crate) function: TFFunction0,
     pub(crate) data_type: D,
 }
 
-impl<D: Data> ExprImpl<D> for Fn0Expr<D> {
+impl<const RANK: usize, D: Data<RANK>> ExprImpl<RANK, D> for Fn0Expr<RANK, D> {
     fn id(&self) -> Id {
         self.id
     }

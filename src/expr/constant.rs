@@ -6,12 +6,12 @@ use tensorflow::ops;
 use tensorflow::Shape;
 use tensorflow::Status;
 
-pub(crate) struct ConstantExpr<D: Data> {
+pub(crate) struct ConstantExpr<const RANK: usize, D: Data<RANK>> {
     pub(crate) id: Id,
-    pub(crate) value: TensorData<D>,
+    pub(crate) value: TensorData<RANK, D>,
 }
 
-impl<D: Data + 'static> ExprImpl<D> for ConstantExpr<D> {
+impl<const RANK: usize, D: Data<RANK> + 'static> ExprImpl<RANK, D> for ConstantExpr<RANK, D> {
     fn data_type(&self) -> D {
         self.value.data_type.clone()
     }
@@ -30,7 +30,6 @@ impl<D: Data + 'static> ExprImpl<D> for ConstantExpr<D> {
 
     fn make_operation(&self, compiler: &mut Compiler) -> Result<CompiledElement, Status> {
         let operation = ops::constant(self.value.make_tensor()?, compiler.borrow_scope_mut())?;
-        // let operation = ops::constant(self.value.data.clone(), compiler.borrow_scope_mut())?;
 
         Ok(CompiledElement::Operation(operation))
     }

@@ -7,18 +7,18 @@ use tensorflow::Shape;
 use tensorflow::Status;
 
 #[derive(Clone)]
-pub struct Placeholder<D: Data> {
+pub struct Placeholder<const RANK: usize, D: Data<RANK>> {
     pub(crate) id: Id,
     pub(crate) name: String,
     pub(crate) data_type: D,
 }
 
-impl<D: Data + 'static> Placeholder<D> {
-    pub fn read(&self) -> Expr<D> {
+impl<const RANK: usize, D: Data<RANK> + 'static> Placeholder<RANK, D> {
+    pub fn read(&self) -> Expr<RANK, D> {
         Expr(Rc::new(ReadPlaceholderExpr(self.clone())))
     }
 
-    pub fn refer(&self) -> PlaceholderRef<D> {
+    pub fn refer(&self) -> PlaceholderRef<RANK, D> {
         PlaceholderRef {
             id: self.id,
             data_type: self.data_type.clone(),
@@ -26,15 +26,15 @@ impl<D: Data + 'static> Placeholder<D> {
     }
 }
 
-pub struct PlaceholderRef<D: Data> {
+pub struct PlaceholderRef<const RANK: usize, D: Data<RANK>> {
     pub(crate) id: Id,
     #[allow(dead_code)]
     pub(crate) data_type: D,
 }
 
-pub(crate) struct ReadPlaceholderExpr<D: Data>(Placeholder<D>);
+pub(crate) struct ReadPlaceholderExpr<const RANK: usize, D: Data<RANK>>(Placeholder<RANK, D>);
 
-impl<D: Data> ExprImpl<D> for ReadPlaceholderExpr<D> {
+impl<const RANK: usize, D: Data<RANK>> ExprImpl<RANK, D> for ReadPlaceholderExpr<RANK, D> {
     fn id(&self) -> Id {
         self.0.id
     }

@@ -10,16 +10,18 @@ use tensorflow::Status;
 
 // TODO: GradientDescent, SdcaOptimizer, SdcaOptimizerV2
 
-pub(crate) struct AdaDeltaMinimizeExpr<D: Data, SD: ScalarData> {
+pub(crate) struct AdaDeltaMinimizeExpr<const RANK: usize, D: Data<RANK>, SD: ScalarData> {
     pub(crate) id: Id,
-    pub(crate) loss: Expr<D>,
+    pub(crate) loss: Expr<RANK, D>,
     pub(crate) variables: Vec<VariableRef>,
-    pub(crate) learning_rate: Option<Expr<SD>>,
-    pub(crate) rho: Option<Expr<SD>>,
-    pub(crate) epsilon: Option<Expr<SD>>,
+    pub(crate) learning_rate: Option<Expr<0, SD>>,
+    pub(crate) rho: Option<Expr<0, SD>>,
+    pub(crate) epsilon: Option<Expr<0, SD>>,
 }
 
-impl<D: Data, SD: ScalarData> ExprImpl<NoData> for AdaDeltaMinimizeExpr<D, SD> {
+impl<const RANK: usize, D: Data<RANK>, SD: ScalarData> ExprImpl<0, NoData>
+    for AdaDeltaMinimizeExpr<RANK, D, SD>
+{
     fn id(&self) -> Id {
         self.id
     }

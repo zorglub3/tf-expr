@@ -5,15 +5,15 @@ use tensorflow::ops;
 use tensorflow::Shape;
 use tensorflow::Status;
 
-pub(crate) struct BinOpExpr<D: Data> {
+pub(crate) struct BinOpExpr<const RANK: usize, D: Data<RANK>> {
     pub(crate) id: Id,
     pub(crate) op: BinaryOperator,
-    pub(crate) left: Expr<D>,
-    pub(crate) right: Expr<D>,
+    pub(crate) left: Expr<RANK, D>,
+    pub(crate) right: Expr<RANK, D>,
     pub(crate) data_type: D,
 }
 
-impl<D: Data> ExprImpl<D> for BinOpExpr<D> {
+impl<const RANK: usize, D: Data<RANK>> ExprImpl<RANK, D> for BinOpExpr<RANK, D> {
     fn id(&self) -> Id {
         self.id
     }

@@ -3,16 +3,19 @@ use tensorflow::DataType;
 use tensorflow::Shape;
 use tensorflow::TensorType;
 
-pub trait Data: Clone {
+pub trait Data<const RANK: usize>: Clone {
     type Element: TensorType;
 
-    fn rank(&self) -> usize;
+    fn rank(&self) -> usize {
+        RANK
+    }
+
     fn data_type(&self) -> DataType;
     fn shape(&self) -> Shape;
     fn dimensions(&self) -> Vec<u64>;
 }
 
-pub trait ScalarData: Data + Clone {}
+pub trait ScalarData: Data<0> + Clone {}
 
 impl ScalarData for FloatData<0> {}
 
@@ -29,12 +32,8 @@ impl NoData {
     }
 }
 
-impl Data for NoData {
+impl Data<0> for NoData {
     type Element = i32;
-
-    fn rank(&self) -> usize {
-        0
-    }
 
     fn data_type(&self) -> DataType {
         DataType::Int32
@@ -72,24 +71,22 @@ impl<const D: usize> From<&[usize]> for FloatData<D> {
 }
 */
 
-impl<const D: usize> From<[usize; D]> for FloatData<D> {
-    fn from(shape: [usize; D]) -> Self {
+impl<const RANK: usize> From<[usize; RANK]> for FloatData<RANK> {
+    fn from(shape: [usize; RANK]) -> Self {
         FloatData { shape }
     }
 }
 
-impl<const D: usize> From<&[usize; D]> for FloatData<D> {
-    fn from(shape: &[usize; D]) -> Self {
-        FloatData { shape: shape.clone() }
+impl<const RANK: usize> From<&[usize; RANK]> for FloatData<RANK> {
+    fn from(shape: &[usize; RANK]) -> Self {
+        FloatData {
+            shape: shape.clone(),
+        }
     }
 }
 
-impl<const D: usize> Data for FloatData<D> {
+impl<const RANK: usize> Data<RANK> for FloatData<RANK> {
     type Element = f32;
-
-    fn rank(&self) -> usize {
-        D
-    }
 
     fn data_type(&self) -> DataType {
         DataType::Float
@@ -117,16 +114,12 @@ impl<const D: usize> Data for FloatData<D> {
 }
 
 #[derive(PartialEq, Clone)]
-pub struct DoubleData<const D: usize> {
-    shape: [usize; D],
+pub struct DoubleData<const RANK: usize> {
+    shape: [usize; RANK],
 }
 
-impl<const D: usize> Data for DoubleData<D> {
+impl<const RANK: usize> Data<RANK> for DoubleData<RANK> {
     type Element = f64;
-
-    fn rank(&self) -> usize {
-        D
-    }
 
     fn data_type(&self) -> DataType {
         DataType::Double

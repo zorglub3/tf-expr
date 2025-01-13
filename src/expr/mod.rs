@@ -30,7 +30,7 @@ pub(crate) fn get_id() -> Id {
     COUNTER.fetch_add(1, Ordering::Relaxed)
 }
 
-pub(crate) trait ExprImpl<D: Data> {
+pub(crate) trait ExprImpl<const RANK: usize, D: Data<RANK>> {
     fn data_type(&self) -> D;
     fn shape(&self) -> Shape;
     fn dimensions(&self) -> Vec<u64>;
@@ -39,12 +39,12 @@ pub(crate) trait ExprImpl<D: Data> {
 }
 
 #[derive(Clone)]
-pub struct Expr<D: Data>(pub(crate) Rc<dyn ExprImpl<D>>);
+pub struct Expr<const RANK: usize, D: Data<RANK>>(pub(crate) Rc<dyn ExprImpl<RANK, D>>);
 
-impl<D: Data + 'static> Add<Expr<D>> for Expr<D> {
-    type Output = Expr<D>;
+impl<const RANK: usize, D: Data<RANK> + 'static> Add<Expr<RANK, D>> for Expr<RANK, D> {
+    type Output = Expr<RANK, D>;
 
-    fn add(self, rhs: Expr<D>) -> Expr<D> {
+    fn add(self, rhs: Expr<RANK, D>) -> Expr<RANK, D> {
         let data_type = self.0.data_type();
 
         Expr(Rc::new(binop::BinOpExpr {
@@ -57,10 +57,10 @@ impl<D: Data + 'static> Add<Expr<D>> for Expr<D> {
     }
 }
 
-impl<D: Data + 'static> Sub<Expr<D>> for Expr<D> {
-    type Output = Expr<D>;
+impl<const RANK: usize, D: Data<RANK> + 'static> Sub<Expr<RANK, D>> for Expr<RANK, D> {
+    type Output = Expr<RANK, D>;
 
-    fn sub(self, rhs: Expr<D>) -> Expr<D> {
+    fn sub(self, rhs: Expr<RANK, D>) -> Expr<RANK, D> {
         let data_type = self.0.data_type();
 
         Expr(Rc::new(binop::BinOpExpr {
@@ -73,10 +73,10 @@ impl<D: Data + 'static> Sub<Expr<D>> for Expr<D> {
     }
 }
 
-impl<D: Data + 'static> Mul<Expr<D>> for Expr<D> {
-    type Output = Expr<D>;
+impl<const RANK: usize, D: Data<RANK> + 'static> Mul<Expr<RANK, D>> for Expr<RANK, D> {
+    type Output = Expr<RANK, D>;
 
-    fn mul(self, rhs: Expr<D>) -> Expr<D> {
+    fn mul(self, rhs: Expr<RANK, D>) -> Expr<RANK, D> {
         let data_type = self.0.data_type();
 
         Expr(Rc::new(binop::BinOpExpr {
@@ -89,10 +89,10 @@ impl<D: Data + 'static> Mul<Expr<D>> for Expr<D> {
     }
 }
 
-impl<D: Data + 'static> Div<Expr<D>> for Expr<D> {
-    type Output = Expr<D>;
+impl<const RANK: usize, D: Data<RANK> + 'static> Div<Expr<RANK, D>> for Expr<RANK, D> {
+    type Output = Expr<RANK, D>;
 
-    fn div(self, rhs: Expr<D>) -> Expr<D> {
+    fn div(self, rhs: Expr<RANK, D>) -> Expr<RANK, D> {
         let data_type = self.0.data_type();
 
         Expr(Rc::new(binop::BinOpExpr {
@@ -105,8 +105,8 @@ impl<D: Data + 'static> Div<Expr<D>> for Expr<D> {
     }
 }
 
-impl<const D: usize> Expr<FloatData<D>> {
-    pub fn tanh(self) -> Expr<FloatData<D>> {
+impl<const R: usize> Expr<R, FloatData<R>> {
+    pub fn tanh(self) -> Expr<R, FloatData<R>> {
         let data_type = self.0.data_type();
 
         Expr(Rc::new(fn1::Fn1Expr {
@@ -117,7 +117,7 @@ impl<const D: usize> Expr<FloatData<D>> {
         }))
     }
 
-    pub fn exp(self) -> Expr<FloatData<D>> {
+    pub fn exp(self) -> Expr<R, FloatData<R>> {
         let data_type = self.0.data_type();
 
         Expr(Rc::new(fn1::Fn1Expr {
@@ -128,9 +128,10 @@ impl<const D: usize> Expr<FloatData<D>> {
         }))
     }
 
-    pub fn minimize(self, variables: Vec<VariableRef>) -> Expr<NoData> {
+    pub fn minimize(self, variables: Vec<VariableRef>) -> Expr<0, NoData> {
         Expr(Rc::new(optimize::AdaDeltaMinimizeExpr::<
-            FloatData<D>,
+            R,
+            FloatData<R>,
             FloatData<0>,
         > {
             id: get_id(),
@@ -143,18 +144,9 @@ impl<const D: usize> Expr<FloatData<D>> {
     }
 }
 
-/*
-impl<D: Data + 'static> From<TensorData<D>> for Expr<D> {
-    fn from(tensor_data: TensorData<D>) -> Self {
-        Expr(Rc::new(constant::ConstantExpr {
-            id: get_id(),
-            value: tensor_data,
-        }))
-    }
-}
-*/
-
-impl<D: Data + 'static, T: Into<TensorData<D>>> From<T> for Expr<D> {
+impl<const RANK: usize, D: Data<RANK> + 'static, T: Into<TensorData<RANK, D>>> From<T>
+    for Expr<RANK, D>
+{
     fn from(t: T) -> Self {
         Expr(Rc::new(constant::ConstantExpr {
             id: get_id(),
@@ -163,44 +155,25 @@ impl<D: Data + 'static, T: Into<TensorData<D>>> From<T> for Expr<D> {
     }
 }
 
-/*
-impl<D: Data, TD: TryInto<TensorData<D>>> TryFrom<TD> for Expr<D> {
-    type Error = Status;
-
-    fn try_from(tensor_data: TD) -> Result<Self, Status> {
-        todo!()
-    }
-}
-*/
-
-/*
-pub fn scalar_float(v: f32) -> Expr<FloatData<0>> {
+pub fn scalar<D: Data<0> + From<[usize; 0]> + 'static, T: Into<D::Element>>(v: T) -> Expr<0, D> {
     Expr(Rc::new(constant::ConstantExpr {
         id: get_id(),
-        values: vec![v],
-        data_type: FloatData::from([]),
+        value: TensorData::new([], &[v.into()]),
     }))
 }
 
-pub fn vector_float(v: &[f32]) -> Expr<FloatData<1>> {
-    let mut values = Vec::new();
-
-    values.extend_from_slice(v);
-    let len = values.len();
-
+pub fn vector<D: Data<1> + From<[usize; 1]> + 'static>(v: &[D::Element]) -> Expr<1, D> {
     Expr(Rc::new(constant::ConstantExpr {
         id: get_id(),
-        values,
-        data_type: FloatData::from([len]),
+        value: TensorData::new([v.len()], v),
     }))
 }
-*/
 
 pub fn float_variable<const D: usize, S: Into<FloatData<D>>>(
     name: &str,
-    initial_value: Expr<FloatData<D>>,
+    initial_value: Expr<D, FloatData<D>>,
     shape: S,
-) -> Variable<FloatData<D>> {
+) -> Variable<D, FloatData<D>> {
     Variable {
         id: get_id(),
         name: name.to_string(),
@@ -212,7 +185,7 @@ pub fn float_variable<const D: usize, S: Into<FloatData<D>>>(
 pub fn float_feed<const D: usize, S: Into<FloatData<D>>>(
     name: &str,
     shape: S,
-) -> Placeholder<FloatData<D>> {
+) -> Placeholder<D, FloatData<D>> {
     Placeholder {
         id: get_id(),
         name: name.to_string(),
@@ -220,7 +193,7 @@ pub fn float_feed<const D: usize, S: Into<FloatData<D>>>(
     }
 }
 
-pub fn random_uniform<const D: usize, S: Into<FloatData<D>>>(shape: S) -> Expr<FloatData<D>> {
+pub fn random_uniform<const D: usize, S: Into<FloatData<D>>>(shape: S) -> Expr<D, FloatData<D>> {
     Expr(Rc::new(fn0::Fn0Expr {
         id: get_id(),
         function: fn0::TFFunction0::RandomUniform,
@@ -230,7 +203,7 @@ pub fn random_uniform<const D: usize, S: Into<FloatData<D>>>(shape: S) -> Expr<F
 
 pub fn random_standard_normal<const D: usize, S: Into<FloatData<D>>>(
     shape: S,
-) -> Expr<FloatData<D>> {
+) -> Expr<D, FloatData<D>> {
     Expr(Rc::new(fn0::Fn0Expr {
         id: get_id(),
         function: fn0::TFFunction0::RandomStandardNormal,

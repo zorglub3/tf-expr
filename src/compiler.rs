@@ -33,7 +33,10 @@ impl Compiler {
         &mut self.scope
     }
 
-    pub fn compile<D: Data>(&mut self, expr: &Expr<D>) -> Result<(), Status> {
+    pub fn compile<const RANK: usize, D: Data<RANK>>(
+        &mut self,
+        expr: &Expr<RANK, D>,
+    ) -> Result<(), Status> {
         let id = expr.0.id();
 
         match self.elements.get(&id) {
@@ -46,7 +49,10 @@ impl Compiler {
         }
     }
 
-    pub fn get_output<D: Data>(&mut self, expr: &Expr<D>) -> Result<Output, Status> {
+    pub fn get_output<const RANK: usize, D: Data<RANK>>(
+        &mut self,
+        expr: &Expr<RANK, D>,
+    ) -> Result<Output, Status> {
         let id = expr.0.id();
 
         match self.elements.get(&id) {
@@ -65,7 +71,10 @@ impl Compiler {
         }
     }
 
-    pub fn get_operation<D: Data>(&mut self, expr: &Expr<D>) -> Result<Operation, Status> {
+    pub fn get_operation<const RANK: usize, D: Data<RANK>>(
+        &mut self,
+        expr: &Expr<RANK, D>,
+    ) -> Result<Operation, Status> {
         let id = expr.0.id();
 
         match self.elements.get(&id) {
@@ -89,7 +98,10 @@ impl Compiler {
         }
     }
 
-    pub fn get_variable<D: Data>(&mut self, expr: &Expr<D>) -> Result<Variable, Status> {
+    pub fn get_variable<const RANK: usize, D: Data<RANK>>(
+        &mut self,
+        expr: &Expr<RANK, D>,
+    ) -> Result<Variable, Status> {
         let id = expr.0.id();
 
         match self.elements.get(&id) {

@@ -7,10 +7,10 @@ use tensorflow::Status;
 use tensorflow::Variable as TFVariable;
 
 #[derive(Clone)]
-pub struct Variable<D: Data> {
+pub struct Variable<const RANK: usize, D: Data<RANK>> {
     pub(crate) id: Id,
     pub(crate) name: String,
-    pub(crate) initial_value: Expr<D>,
+    pub(crate) initial_value: Expr<RANK, D>,
     pub(crate) data_type: D,
 }
 
@@ -18,8 +18,8 @@ pub struct VariableRef {
     pub(crate) id: Id,
 }
 
-impl<D: Data + 'static> Variable<D> {
-    pub fn read(&self) -> Expr<D> {
+impl<const RANK: usize, D: Data<RANK> + 'static> Variable<RANK, D> {
+    pub fn read(&self) -> Expr<RANK, D> {
         Expr(Rc::new(ReadVariableExpr(self.clone())))
     }
 
@@ -28,9 +28,9 @@ impl<D: Data + 'static> Variable<D> {
     }
 }
 
-pub(crate) struct ReadVariableExpr<D: Data>(Variable<D>);
+pub(crate) struct ReadVariableExpr<const RANK: usize, D: Data<RANK>>(Variable<RANK, D>);
 
-impl<D: Data> ExprImpl<D> for ReadVariableExpr<D> {
+impl<const RANK: usize, D: Data<RANK>> ExprImpl<RANK, D> for ReadVariableExpr<RANK, D> {
     fn id(&self) -> Id {
         self.0.id
     }
