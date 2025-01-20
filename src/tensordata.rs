@@ -69,6 +69,6 @@ impl From<&[f32]> for TensorData<1, data::FloatData<1>> {
 
 impl From<f32> for TensorData<0, data::FloatData<0>> {
     fn from(value: f32) -> Self {
-        TensorData::new([], &[value])
+        TensorData::new::<[usize; 0]>([], &[value])
     }
 }

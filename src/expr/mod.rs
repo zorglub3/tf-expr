@@ -13,6 +13,7 @@ mod binop;
 mod constant;
 mod fn0;
 mod fn1;
+mod fn2;
 mod optimize;
 mod placeholder;
 mod variable;
@@ -112,7 +113,7 @@ impl<const R: usize> Expr<R, FloatData<R>> {
         Expr(Rc::new(fn1::Fn1Expr {
             id: get_id(),
             function: fn1::TFFunction1::Tanh,
-            arg: self.clone(),
+            arg: self,
             data_type,
         }))
     }
@@ -123,12 +124,16 @@ impl<const R: usize> Expr<R, FloatData<R>> {
         Expr(Rc::new(fn1::Fn1Expr {
             id: get_id(),
             function: fn1::TFFunction1::Exp,
-            arg: self.clone(),
+            arg: self,
             data_type,
         }))
     }
 
-    pub fn minimize(self, variables: Vec<VariableRef>) -> Expr<0, NoData> {
+    pub fn minimize(self, vars: &[VariableRef]) -> Expr<0, NoData> {
+        let mut variables = Vec::new();
+
+        variables.extend_from_slice(vars);
+
         Expr(Rc::new(optimize::AdaDeltaMinimizeExpr::<
             R,
             FloatData<R>,
@@ -140,6 +145,23 @@ impl<const R: usize> Expr<R, FloatData<R>> {
             learning_rate: None,
             rho: None,
             epsilon: None,
+        }))
+    }
+}
+
+impl Expr<2, FloatData<2>> {
+    pub fn mat_mul(self, other: Expr<2, FloatData<2>>) -> Expr<2, FloatData<2>> {
+        let shape_self = self.0.dimensions();
+        let shape_other = other.0.dimensions();
+
+        let data_type: FloatData<2> = [shape_self[0], shape_other[1]].into();
+
+        Expr(Rc::new(fn2::Fn2Expr {
+            id: get_id(),
+            function: fn2::TFFunction2::MatMul,
+            arg1: self, 
+            arg2: other,
+            data_type,
         }))
     }
 }

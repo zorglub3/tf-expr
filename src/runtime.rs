@@ -4,6 +4,7 @@ use crate::data::Data;
 use crate::expr::Expr;
 use crate::expr::Id;
 use crate::expr::PlaceholderRef;
+use crate::expr::Variable;
 use crate::tensordata::TaggedTensor;
 use std::collections::HashMap;
 use std::ops::Deref;
@@ -34,12 +35,45 @@ impl RuntimeSession {
 
         for (_k, v) in &self.elements {
             if let CompiledElement::Variable(variable) = v {
+                println!("adding initializer for {}", variable.name());
                 args.add_target(&variable.initializer());
                 counter += 1;
+            } else if let CompiledElement::Optimizer(_, variables) = v {
+                for variable in variables {
+                    args.add_target(&variable.initializer());
+                    counter += 1;
+                }
             }
         }
 
         counter
+    }
+
+    pub fn add_initializer<const RANK: usize, D: Data<RANK>>(
+        &self,
+        args: &mut SessionRunArgs,
+        var: &Variable<RANK, D>,
+    ) {
+        let id = var.id;
+
+        match self.elements.get(&id) {
+            Some(CompiledElement::Variable(variable)) => args.add_target(&variable.initializer()),
+            _ => {} // do nothing
+        }
+    }
+
+    pub fn add_target<const RANK: usize, D: Data<RANK>>(
+        &self,
+        args: &mut SessionRunArgs,
+        expr: &Expr<RANK, D>,
+    ) {
+        let id = expr.0.id();
+
+        match self.elements.get(&id) {
+            Some(CompiledElement::Operation(operation)) => args.add_target(&operation),
+            Some(CompiledElement::Optimizer(operation, _)) => args.add_target(&operation),
+            _ => {} // do nothing
+        }
     }
 
     pub fn request_fetch<const RANK: usize, D: Data<RANK>>(

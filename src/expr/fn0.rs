@@ -32,17 +32,21 @@ impl<const RANK: usize, D: Data<RANK>> ExprImpl<RANK, D> for Fn0Expr<RANK, D> {
         let operation = match self.function {
             TFFunction0::RandomStandardNormal => {
                 let shape = ops::constant(
-                    &self.data_type.dimensions()[..],
+                    &self.data_type.dimensions_i64()[..],
                     compiler.borrow_scope_mut(),
                 )?;
-                ops::random_standard_normal(shape, compiler.borrow_scope_mut())?
+                ops::RandomStandardNormal::new()
+                    .dtype(self.data_type.data_type())
+                    .build(shape, compiler.borrow_scope_mut())?
             }
             TFFunction0::RandomUniform => {
                 let shape = ops::constant(
-                    &self.data_type.dimensions()[..],
+                    &self.data_type.dimensions_i64()[..],
                     compiler.borrow_scope_mut(),
                 )?;
-                ops::random_uniform(shape, compiler.borrow_scope_mut())?
+                ops::RandomUniform::new()
+                    .dtype(self.data_type.data_type())
+                    .build(shape, compiler.borrow_scope_mut())?
             }
         };
 

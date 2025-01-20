@@ -11,3 +11,11 @@ tensorflow = "0.21.0"
 [[example]]
 name = "simple_expression"
 crate-type = ["bin"]
+
+[[example]]
+name = "simple_feed"
+crate-type = ["bin"]
+
+[[example]]
+name = "xor"
+crate-type = ["bin"]

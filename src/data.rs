@@ -13,6 +13,18 @@ pub trait Data<const RANK: usize>: Clone {
     fn data_type(&self) -> DataType;
     fn shape(&self) -> Shape;
     fn dimensions(&self) -> Vec<u64>;
+
+    fn dimensions_i64(&self) -> Vec<i64> {
+        let dimensions = self.dimensions();
+
+        let mut result = Vec::new();
+
+        for i in 0 .. RANK {
+            result.push(dimensions[i] as i64);
+        }
+
+        result
+    }
 }
 
 pub trait ScalarData: Data<0> + Clone {}
@@ -82,6 +94,30 @@ impl<const RANK: usize> From<&[usize; RANK]> for FloatData<RANK> {
         FloatData {
             shape: shape.clone(),
         }
+    }
+}
+
+impl<const RANK: usize> From<[u64; RANK]> for FloatData<RANK> {
+    fn from(shape_u64: [u64; RANK]) -> Self {
+        let mut shape: [usize; RANK] = [0; RANK];
+
+        for i in 0 .. RANK {
+            shape[i] = shape_u64[i] as usize;
+        }
+
+        FloatData { shape }
+    }
+}
+
+impl<const RANK: usize> From<&[u64; RANK]> for FloatData<RANK> {
+    fn from(shape_u64: &[u64; RANK]) -> Self {
+        let mut shape: [usize; RANK] = [0; RANK];
+
+        for i in 0 .. RANK {
+            shape[i] = shape_u64[i] as usize;
+        }
+
+        FloatData { shape }
     }
 }
 

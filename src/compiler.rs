@@ -60,7 +60,7 @@ impl Compiler {
             Some(CompiledElement::Variable(variable)) => Ok(variable.output().clone()),
             Some(CompiledElement::Optimizer(_, _)) => Err(Status::new_set_lossy(
                 Code::InvalidArgument,
-                "You can't use the output from an optimizer",
+                "You can't use the output from an optimizer yet",
             )),
             None => {
                 let element = expr.0.make_operation(self)?;
@@ -142,6 +142,7 @@ impl Compiler {
 pub(crate) enum CompiledElement {
     Operation(Operation),
     Variable(Variable),
+    #[allow(dead_code)]
     Optimizer(Operation, Vec<Variable>),
 }
 

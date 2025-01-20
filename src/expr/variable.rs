@@ -14,6 +14,7 @@ pub struct Variable<const RANK: usize, D: Data<RANK>> {
     pub(crate) data_type: D,
 }
 
+#[derive(Clone)]
 pub struct VariableRef {
     pub(crate) id: Id,
 }
